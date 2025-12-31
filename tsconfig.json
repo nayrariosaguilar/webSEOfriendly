@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "backend/src/controllers/categories.controller.js", "backend/src/controllers/drawings.controller.js", "backend/src/controllers/subcategories.controller.js", "backend/src/routes/categories.routes.js", "backend/src/routes/drawings.routes.js", "backend/src/routes/subcategories.routes.js", "backend/src/services/categories.service.js", "backend/src/services/drawings.service.js", "backend/src/services/subcategories.service.js"  ],
   "exclude": ["node_modules"]
 }
