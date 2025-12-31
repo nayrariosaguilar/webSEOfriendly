@@ -20,7 +20,7 @@ export default async function HomePage() {
           <SearchBar />
         </div>
 
-        {/* FILTROS (likes, descargas, recientes) */}
+        {/* FILTROS (likes, descargas, recientes) frfr */}
         <FiltersBar />
 
         {/* GRID DE DIBUJOS (Pinterest-style) */}
