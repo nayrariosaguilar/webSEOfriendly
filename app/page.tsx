@@ -15,7 +15,7 @@ export default async function HomePage() {
 
       <main className="container mx-auto px-4 py-6">
         
-        {/* BUSCADOR */}
+        {/* BUSCADOR dd */}
         <div className="mb-6">
           <SearchBar />
         </div>
