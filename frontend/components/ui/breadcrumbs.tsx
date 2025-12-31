@@ -1,0 +1,1 @@
+//OBLIGATORIO SEO - Google los usa para:Entender jerarquía, Crear enlaces en resultados y Mejorar CTR
