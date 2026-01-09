@@ -2,13 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { Heart, Download, Share2, Pin } from "lucide-react";
-import { ShareButtons } from "@/frontend/components/share-buttons";
+import { useState, useEffect, useRef } from "react";
+import { Heart, Download, Printer, ChevronDown } from "lucide-react";
 
 const BASE = "https://dpvulchbiygiidolzrjl.supabase.co";
-export function publicUrl(path: string) {
-  return `${BASE}/storage/v1/object/public/${path}`;
+function getImageUrl(path: string) {
+  // Si el path ya incluye el bucket (drawings/), usarlo directamente
+  // Si no, agregar el prefijo drawings/
+  if (path.startsWith("drawings/")) {
+    return `${BASE}/storage/v1/object/public/${path}`;
+  }
+  return `${BASE}/storage/v1/object/public/drawings/${path}`;
 }
 
 interface DrawingCardProps {
@@ -25,100 +29,188 @@ interface DrawingCardProps {
 export function DrawingCard({
   slug,
   titulo,
-  descripcion,
   imagen,
   category,
   subcategory,
   likes = 0,
-  downloads = 0,
 }: DrawingCardProps) {
   const [liked, setLiked] = useState(false);
-  const [showShare, setShowShare] = useState(false);
+  const [likeCount, setLikeCount] = useState(likes);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const downloadRef = useRef<HTMLDivElement>(null);
+
+  const imageUrl = getImageUrl(imagen);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (downloadRef.current && !downloadRef.current.contains(e.target as Node)) {
+        setShowDownloadMenu(false);
+      }
+    };
+    if (showDownloadMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDownloadMenu]);
+  const pageUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/${category}/${subcategory}/${slug}`
+    : "";
+
+  const handleLike = async () => {
+    if (!liked) {
+      setLiked(true);
+      setLikeCount(prev => prev + 1);
+      try {
+        await fetch(`/api/trending/${slug}/like`, { method: "POST" });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const handlePinterest = () => {
+    const pinterestUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(pageUrl)}&media=${encodeURIComponent(imageUrl)}&description=${encodeURIComponent(titulo)}`;
+    window.open(pinterestUrl, "_blank", "width=600,height=400");
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head><title>${titulo}</title></head>
+          <body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+            <img src="${imageUrl}" style="max-width:100%;max-height:100vh;" onload="window.print();window.close();" />
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
+  const handleDownload = async (format: string) => {
+    setShowDownloadMenu(false);
+
+    try {
+      await fetch(`/api/trending/${slug}/download`, { method: "POST" });
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (format === "png" || format === "jpg") {
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = `${slug}.${format}`;
+      link.click();
+    } else if (format === "pdf") {
+      window.open(imageUrl, "_blank");
+    }
+  };
 
   return (
-    <div
-      className="
-        relative w-full rounded-xl overflow-hidden shadow-md bg-white 
-        hover:shadow-xl transition cursor-pointer group
-      "
-    >
-      {/* LINK - RUTA CORRECTA */}
+    <div className="group relative">
+      {/* Card Container */}
+      <div className="relative rounded-2xl overflow-hidden bg-gray-100">
+        {/* Image */}
+        <Link href={`/${category}/${subcategory}/${slug}`}>
+          <div className="relative aspect-[3/4] w-full">
+            <Image
+              src={imageUrl}
+              alt={titulo}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            />
+          </div>
+        </Link>
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200" />
+
+        {/* Action Buttons - Visible on Hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+
+          {/* Top Row */}
+          <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+            {/* Pinterest Save */}
+            <button
+              onClick={handlePinterest}
+              className="flex items-center gap-1.5 bg-[#E60023] hover:bg-[#ad081b] text-white px-4 py-2 rounded-full font-semibold text-sm shadow-lg transition-colors"
+            >
+              Guardar
+            </button>
+
+            {/* Download Dropdown */}
+            <div className="relative" ref={downloadRef}>
+              <button
+                onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                className="flex items-center gap-1 bg-white hover:bg-gray-100 p-2.5 rounded-full shadow-lg transition-colors"
+              >
+                <Download className="w-5 h-5" />
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {showDownloadMenu && (
+                <div className="absolute right-0 top-12 bg-white rounded-xl shadow-xl py-2 min-w-[140px] z-50">
+                  <button
+                    onClick={() => handleDownload("png")}
+                    className="w-full px-4 py-2.5 text-left hover:bg-gray-100 text-sm font-medium"
+                  >
+                    PNG
+                  </button>
+                  <button
+                    onClick={() => handleDownload("jpg")}
+                    className="w-full px-4 py-2.5 text-left hover:bg-gray-100 text-sm font-medium"
+                  >
+                    JPG
+                  </button>
+                  <button
+                    onClick={() => handleDownload("pdf")}
+                    className="w-full px-4 py-2.5 text-left hover:bg-gray-100 text-sm font-medium"
+                  >
+                    PDF
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Row */}
+          <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
+            {/* Like Button */}
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full shadow-lg transition-all ${
+                liked
+                  ? "bg-red-500 text-white"
+                  : "bg-white hover:bg-gray-100"
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${liked ? "fill-white" : ""}`} />
+              {likeCount > 0 && (
+                <span className="text-sm font-medium">{likeCount}</span>
+              )}
+            </button>
+
+            {/* Print Button */}
+            <button
+              onClick={handlePrint}
+              className="bg-white hover:bg-gray-100 p-2.5 rounded-full shadow-lg transition-colors"
+            >
+              <Printer className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Title Below Image */}
       <Link href={`/${category}/${subcategory}/${slug}`}>
-        <div className="relative aspect-[9/16] w-full bg-gray-100">
-          <Image
-            src={publicUrl(imagen)}
-            alt={titulo}
-            fill
-            priority={false}
-            className="object-cover group-hover:scale-105 transition-transform"
-            sizes="(max-width: 768px) 100vw, 33vw"
-          />
-        </div>
+        <h3 className="mt-2 px-1 text-sm font-medium text-gray-800 line-clamp-2 hover:text-gray-600 transition-colors">
+          {titulo}
+        </h3>
       </Link>
-
-      {/* OVERLAY BOTONES */}
-      <div className="absolute inset-0 flex flex-col justify-between p-3 pointer-events-none">
-
-        {/* TOP */}
-        <div className="flex justify-between">
-          {/* GUARDAR PINTEREST */}
-          <button
-            aria-label="Guardar en Pinterest"
-            className="pointer-events-auto bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-white"
-          >
-            <Pin className="w-5 h-5 text-red-600" />
-          </button>
-
-          {/* DESCARGAR */}
-          <a
-            href={publicUrl(imagen)}
-            download
-            aria-label="Descargar"
-            className="pointer-events-auto bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-white"
-          >
-            <Download className="w-5 h-5" />
-          </a>
-        </div>
-
-        {/* BOTTOM */}
-        <div className="flex justify-between">
-          {/* LIKE */}
-          <button
-            aria-label="Me gusta"
-            onClick={() => setLiked(!liked)}
-            className="pointer-events-auto bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-white"
-          >
-            <Heart className={`w-5 h-5 ${liked ? "text-red-600 fill-red-600" : ""}`} />
-          </button>
-
-          {/* COMPARTIR */}
-          <button
-            aria-label="Compartir"
-            onClick={() => setShowShare(!showShare)}
-            className="pointer-events-auto bg-white/90 backdrop-blur p-2 rounded-full shadow hover:bg-white"
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* SHARE POPUP */}
-      {showShare && (
-        <div className="absolute bottom-3 right-3 bg-white rounded-lg shadow-lg p-2 z-50">
-          <ShareButtons titulo={titulo} imagen={publicUrl(imagen)} />
-        </div>
-      )}
-
-      {/* BODY */}
-      <div className="p-3">
-        <h3 className="text-lg font-semibold line-clamp-1">{titulo}</h3>
-        <p className="text-gray-600 text-sm line-clamp-2">{descripcion}</p>
-
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-          <span>❤️ {likes}</span>
-          <span>⬇️ {downloads}</span>
-        </div>
-      </div>
     </div>
   );
 }
+

@@ -1,16 +1,20 @@
 import Image from "next/image";
 import { ShareButtons } from "@/frontend/components/share-buttons";
-import { getDrawing } from "@/frontend/lib/api";
+import { getDrawing, getPublicUrl, type Drawing } from "@/frontend/lib/api";
 import { BreadcrumbJsonLd } from "next-seo";
+import { notFound } from "next/navigation";
 
-const BASE = "https://dpvulchbiygiidolzrjl.supabase.co";
-export function publicUrl(path: string) {
-  return `${BASE}/storage/v1/object/public/${path}`;
+interface PageParams {
+  params: Promise<{
+    category: string;
+    subcategory: string;
+    slug: string;
+  }>;
 }
 
-export async function generateMetadata({ params }: any) {
+export async function generateMetadata({ params }: PageParams) {
   const { slug } = await params;
-  const dibujo = await getDrawing(slug);
+  const dibujo: Drawing | null = await getDrawing(slug);
 
   if (!dibujo) {
     return { title: "Dibujo no encontrado | Colorear" };
@@ -25,17 +29,15 @@ export async function generateMetadata({ params }: any) {
   };
 }
 
-export default async function DibujoPage({ params }: any) {
+export default async function DibujoPage({ params }: PageParams) {
   const { slug } = await params;
   const dibujo = await getDrawing(slug);
 
   if (!dibujo) {
-    return (
-      <main className="container mx-auto px-4 py-10">
-        <h1 className="text-center text-3xl font-bold">Dibujo no encontrado</h1>
-      </main>
-    );
+    notFound();
   }
+
+  const imageUrl = getPublicUrl(dibujo.imagen);
 
   return (
     <main className="container mx-auto px-4 py-10">
@@ -58,7 +60,7 @@ export default async function DibujoPage({ params }: any) {
             "@type": "ImageObject",
             name: dibujo.titulo,
             description: dibujo.descripcion,
-            contentUrl: publicUrl(dibujo.imagen),
+            contentUrl: imageUrl,
             url: `https://tusitio.com/${dibujo.category_slug}/${dibujo.subcategory_slug}/${dibujo.slug}`,
             encodingFormat: "image/jpeg",
             keywords: `${dibujo.category_slug}, ${dibujo.subcategory_slug}, colorear, dibujos para colorear`,
@@ -88,7 +90,7 @@ export default async function DibujoPage({ params }: any) {
 
       <div className="relative aspect-square w-full max-w-xl mx-auto">
         <Image
-          src={publicUrl(dibujo.imagen)}
+          src={imageUrl}
           alt={dibujo.titulo}
           fill
           className="object-contain"
@@ -99,7 +101,7 @@ export default async function DibujoPage({ params }: any) {
         {dibujo.descripcion}
       </p>
 
-      <ShareButtons titulo={dibujo.titulo} imagen={dibujo.imagen} />
+      <ShareButtons titulo={dibujo.titulo} imagen={imageUrl} />
     </main>
   );
 }

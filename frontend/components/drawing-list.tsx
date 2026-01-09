@@ -8,6 +8,8 @@ interface DrawingListProps {
     imagen: string;
     category: string;
     subcategory: string;
+    likes?: number;
+    downloads?: number;
   }>;
 }
 
@@ -23,6 +25,8 @@ export function DrawingList({ dibujos }: DrawingListProps) {
           imagen={d.imagen}
           category={d.category}
           subcategory={d.subcategory}
+          likes={d.likes}
+          downloads={d.downloads}
         />
       ))}
     </div>
