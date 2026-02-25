@@ -1,12 +1,6 @@
 import { Suspense } from "react";
-import { getDrawingsPaginated, getCategories, type SortOption } from "@/frontend/lib/api";
-import Navbar from "@/frontend/components/home/navbar";
-import Footer from "@/frontend/components/home/footer";
-import SearchBar from "@/frontend/components/ui/searchBar";
-import FiltersBar from "@/frontend/components/home/filtersBar";
-import { CategoriesBar } from "@/frontend/components/home/categoriesBar";
-import { DrawingList } from "@/frontend/components/drawing-list";
-import { Pagination } from "@/frontend/components/ui/pagination";
+import { getDrawingsPaginated, getCategories, type SortOption } from "@/lib/api";
+import { DrawingList } from "@/components/drawings/drawing-list";
 
 interface HomePageProps {
   searchParams: Promise<{
@@ -23,69 +17,77 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const filter: SortOption = params.filter || "popular";
   const page = parseInt(params.page || "1", 10);
 
-  const [{ drawings, pagination }, categories] = await Promise.all([
-    getDrawingsPaginated(filter, page, ITEMS_PER_PAGE),
-    getCategories(),
-  ]);
+  // Intentamos obtener datos, si falla manejamos el error elegantemente
+  const data = await getDrawingsPaginated(filter, page, ITEMS_PER_PAGE).catch(() => null);
+  const categories = await getCategories().catch(() => []);
 
-  const formattedDrawings = drawings.map((d) => ({
-    ...d,
-    category: d.category_slug,
-    subcategory: d.subcategory_slug,
-  }));
+  const drawings = data?.drawings || [];
+  const pagination = data?.pagination || { total: 0, page: 1, totalPages: 1 };
 
   return (
-    <>
-      <Navbar />
-
-      <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <SearchBar />
-        </div>
-
-        <CategoriesBar categories={categories} />
-
-        <Suspense fallback={<div className="flex gap-3 my-4">Cargando filtros...</div>}>
-          <FiltersBar currentFilter={filter} />
-        </Suspense>
-
-        <p className="text-gray-600 mb-4">
-          Mostrando {formattedDrawings.length} de {pagination.total} dibujos
+    <main className="container mx-auto px-4 py-6 sm:py-12">
+      <header className="mb-8 sm:mb-16 text-center">
+        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
+          Dibujos para <span className="text-blue-600 italic">Colorear</span> <br className="hidden sm:block" /> Gratis
+        </h1>
+        <p className="text-gray-500 text-base sm:text-xl max-w-2xl mx-auto px-4">
+          Descubre nuestra colección exclusiva de line art generada por IA. 
+          Perfectos para imprimir y colorear en casa con los más pequeños.
         </p>
+      </header>
 
-        <section className="mt-6">
-          <DrawingList dibujos={formattedDrawings} />
-        </section>
+      {/* Categorías Rápidas - Ahora con Scroll Horizontal en móvil */}
+      <div className="flex overflow-x-auto sm:flex-wrap sm:justify-center gap-3 mb-10 pb-4 sm:pb-0 scrollbar-hide">
+        {categories.map((cat) => (
+          <a
+            key={cat.id}
+            href={`/${cat.slug}`}
+            className="whitespace-nowrap px-6 py-2 bg-white border border-gray-100 rounded-full shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-sm font-bold text-gray-700"
+          >
+            {cat.nombre}
+          </a>
+        ))}
+      </div>
 
-        <Suspense fallback={<div className="flex justify-center my-8">Cargando paginacion...</div>}>
-          <Pagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-          />
-        </Suspense>
-      </main>
+      <div className="flex items-center justify-between mb-6 sm:mb-10">
+        <h2 className="text-xl sm:text-3xl font-black text-gray-800">Tendencias</h2>
+        <div className="text-[10px] sm:text-sm font-medium text-gray-400 uppercase tracking-widest">
+          {drawings.length} Dibujos
+        </div>
+      </div>
 
-      <Footer />
-    </>
+      <Suspense fallback={<div className="grid grid-cols-5 gap-6">Cargando galería...</div>}>
+        <DrawingList dibujos={drawings} />
+      </Suspense>
+
+      {/* Paginación Simple */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-16 flex justify-center gap-2">
+          {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => (
+            <a
+              key={i}
+              href={`/?page=${i + 1}&filter=${filter}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all ${
+                pagination.page === i + 1 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white border text-gray-400 hover:border-blue-400'
+              }`}
+            >
+              {i + 1}
+            </a>
+          ))}
+        </div>
+      )}
+    </main>
   );
 }
 
 export async function generateMetadata({ searchParams }: HomePageProps) {
   const params = await searchParams;
-  const filter = params.filter || "popular";
   const page = params.page || "1";
 
-  const filterLabels: Record<SortOption, string> = {
-    popular: "Mas Populares",
-    downloads: "Mas Descargados",
-    recent: "Recientes",
-  };
-
   return {
-    title: `Dibujos ${filterLabels[filter]} - Pagina ${page}`,
-    description: `Explora dibujos para colorear ${filterLabels[filter].toLowerCase()}. Pagina ${page}.`,
-    alternates: {
-      canonical: `/?filter=${filter}&page=${page}`,
-    },
+    title: `Dibujos para Colorear e Imprimir - Página ${page}`,
+    description: `La mayor galería de dibujos para colorear gratis. Página ${page}.`,
   };
 }

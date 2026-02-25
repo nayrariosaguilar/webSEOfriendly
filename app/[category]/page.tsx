@@ -1,97 +1,69 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCategories } from "@/frontend/lib/api";
-import { BreadcrumbJsonLd} from "next-seo";
+import { getSubcategoriesByCategory, getPublicUrl } from "@/lib/api";
+import { notFound } from "next/navigation";
 
-const BASE = "https://dpvulchbiygiidolzrjl.supabase.co";
-export function publicUrl(path: string) {
-  return `${BASE}/storage/v1/object/public/${path}`;
+interface CategoryPageProps {
+  params: Promise<{ category: string }>;
 }
 
-export default async function CategoryPage({ params }: any) {
+export default async function CategoryPage({ params }: CategoryPageProps) {
   const { category } = await params;
-  // 🔥 Llamas a tu backend
-  const subcategorias = await getCategories();
-  // 🔥 JSON-LD — Breadcrumb SEO
-  const breadcrumbLd = (
-    <BreadcrumbJsonLd
-      items={[
-        {
-          name: "Inicio",
-          item: "https://tusitio.com",
-        },
-        {
-          name: category,
-          item: `https://tusitio.com/${category}`,
-        },
-      ]}
-    />
-  );
+  const subcategorias = await getSubcategoriesByCategory(category);
 
-  if (!subcategorias || subcategorias.length === 0) {
-    return (
-      <main className="container mx-auto py-10 px-4">
-        {breadcrumbLd}
-
-          <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          name: `Subcategorías de ${category}`,
-          itemListElement: subcategorias.map((sub: any, index: number) => ({
-            "@type": "ListItem",
-            position: index + 1,
-            name: sub.nombre,
-            url: `https://tusitio.com/${category}/${sub.slug}`,
-            image: publicUrl(sub.imagen),
-          })),
-        }),
-      }}
-    />
-        <h1 className="text-4xl font-bold mb-8 capitalize">
-          {category.replace("-", " ")}
-        </h1>
-
-        <p className="text-lg text-gray-600">
-          No hay subcategorías en esta categoría todavía.
-        </p>
-      </main>
-    );
+  if (!subcategorias) {
+    notFound();
   }
 
   return (
-    <main className="container mx-auto py-10 px-4">
-      {breadcrumbLd}
+    <main className="container mx-auto py-12 px-4">
+      <header className="mb-12">
+        <div className="flex items-center gap-2 text-xs font-bold text-blue-500 uppercase tracking-widest mb-4">
+          <Link href="/" className="hover:underline">Inicio</Link>
+          <span className="text-gray-300">/</span>
+          <span>{category}</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-black capitalize text-gray-900">
+          {category.replace("-", " ")}
+        </h1>
+      </header>
 
-      <h1 className="text-4xl font-bold mb-8 capitalize">
-        {category.replace("-", " ")}
-      </h1>
+      {subcategorias.length === 0 ? (
+        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed">
+          <p className="text-gray-500">No hay subcategorías todavía.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-10">
+          {subcategorias.map((sub: any) => (
+            <Link
+              key={sub.slug}
+              href={`/${category}/${sub.slug}`}
+              className="group flex flex-col items-center text-center"
+            >
+              <div className="relative w-32 h-32 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-lg group-hover:shadow-2xl group-hover:scale-105 transition-all duration-300 border-4 border-white">
+                <Image
+                  src={getPublicUrl(sub.imagen)}
+                  alt={sub.nombre}
+                  fill
+                  className="object-cover"
+                />
+              </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-10">
-        {subcategorias.map((sub: any) => (
-          <Link
-            key={sub.slug}
-            href={`/${category}/${sub.slug}`}
-            className="flex flex-col items-center text-center"
-          >
-            <div className="w-32 h-32 rounded-full overflow-hidden shadow-lg">
-              <Image
-                src={publicUrl(sub.imagen)}
-                alt={sub.nombre}
-                width={128}
-                height={128}
-                className="object-cover"
-              />
-            </div>
-
-            <span className="mt-3 font-semibold capitalize">
-              {sub.nombre}
-            </span>
-          </Link>
-        ))}
-      </div>
+              <span className="mt-4 font-black text-gray-800 capitalize text-lg group-hover:text-blue-600 transition-colors">
+                {sub.nombre}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
     </main>
   );
+}
+
+export async function generateMetadata({ params }: CategoryPageProps) {
+  const { category } = await params;
+  return {
+    title: `Dibujos de ${category.replace("-", " ")} para colorear`,
+    description: `Descubre todos los dibujos de ${category.replace("-", " ")} listos para imprimir y pintar.`,
+  };
 }

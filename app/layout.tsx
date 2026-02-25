@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../styles/globals.css";
-import { OrganizationJsonLd } from "next-seo";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://tusitio.com"),
@@ -34,31 +35,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  openGraph: {
-    type: "website",
-    url: "https://tusitio.com",
-    title: "Dibujos para Colorear Gratis",
-    description:
-      "Miles de dibujos listos para imprimir y colorear. Actualizado cada día.",
-    siteName: "Colorear",
-    images: [
-      {
-        url: "https://tusitio.com/og-image.jpg",
-        width: 1200,
-        height: 630,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Dibujos para Colorear",
-    description: "Miles de dibujos gratuitos para imprimir y colorear.",
-    images: ["https://tusitio.com/og-image.jpg"],
-  },
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default function RootLayout({
@@ -67,19 +43,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <OrganizationJsonLd
-        name="Colorear Web"
-        url="https://tusitio.com"
-        logo="https://tusitio.com/logo.png"
-        sameAs={[
-          "https://www.facebook.com/...",
-          "https://www.instagram.com/...",
-        ]}
-        description="Dibujos para colorear listos para imprimir."
-        />
-        {children}
+    <html lang="es">
+      <body className="antialiased min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

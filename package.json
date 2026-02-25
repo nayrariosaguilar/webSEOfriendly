@@ -6,6 +6,9 @@
     "dev": "next dev",
     "dev:backend": "cd backend && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\"",
+    "proxy:up": "docker compose -f docker-compose.nginx.yml up -d",
+    "proxy:down": "docker compose -f docker-compose.nginx.yml down",
+    "proxy:logs": "docker compose -f docker-compose.nginx.yml logs -f nginx",
     "build": "next build",
     "start": "next start",
     "start:backend": "cd backend && npm run start",
@@ -13,6 +16,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.97.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
@@ -20,10 +25,10 @@
     "express": "^5.1.0",
     "lucide-react": "^0.554.0",
     "next": "16.0.3",
-    "next-seo": "^7.0.1",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,7 +1,6 @@
 import Image from "next/image";
-import { ShareButtons } from "@/frontend/components/share-buttons";
-import { getDrawing, getPublicUrl, type Drawing } from "@/frontend/lib/api";
-import { BreadcrumbJsonLd } from "next-seo";
+import { ShareButtons } from "@/components/drawings/share-buttons";
+import { getDrawing, getPublicUrl, type Drawing } from "@/lib/api";
 import { notFound } from "next/navigation";
 
 interface PageParams {
@@ -23,9 +22,6 @@ export async function generateMetadata({ params }: PageParams) {
   return {
     title: `${dibujo.titulo} | Dibujos para Colorear`,
     description: dibujo.descripcion,
-    alternates: {
-      canonical: `https://tusitio.com/${dibujo.category_slug}/${dibujo.subcategory_slug}/${dibujo.slug}`,
-    },
   };
 }
 
@@ -40,68 +36,39 @@ export default async function DibujoPage({ params }: PageParams) {
   const imageUrl = getPublicUrl(dibujo.imagen);
 
   return (
-    <main className="container mx-auto px-4 py-10">
+    <main className="container mx-auto px-4 py-6 sm:py-12">
+      <div className="max-w-4xl mx-auto">
+        <header className="mb-6 sm:mb-10 text-center">
+          <h1 className="text-3xl sm:text-5xl font-black mb-4 text-gray-900 leading-tight">
+            {dibujo.titulo}
+          </h1>
+          <div className="flex justify-center gap-4 text-xs sm:text-sm font-bold text-blue-500 uppercase tracking-widest">
+            <span>{dibujo.category_slug}</span>
+            <span className="text-gray-300">•</span>
+            <span>{dibujo.subcategory_slug}</span>
+          </div>
+        </header>
 
-      <BreadcrumbJsonLd
-        items={[
-          { name: "Home", item: "https://tusitio.com" },
-          { name: dibujo.category_slug, item: `https://tusitio.com/${dibujo.category_slug}` },
-          { name: dibujo.subcategory_slug, item: `https://tusitio.com/${dibujo.category_slug}/${dibujo.subcategory_slug}` },
-          { name: dibujo.titulo }
-        ]}
-      />
+        <div className="relative aspect-square w-full max-w-2xl mx-auto bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden mb-8 sm:mb-12">
+          <Image
+            src={imageUrl}
+            alt={dibujo.titulo}
+            fill
+            className="object-contain p-4 sm:p-8"
+            priority
+          />
+        </div>
 
-      {/* JSON-LD Imagen */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "ImageObject",
-            name: dibujo.titulo,
-            description: dibujo.descripcion,
-            contentUrl: imageUrl,
-            url: `https://tusitio.com/${dibujo.category_slug}/${dibujo.subcategory_slug}/${dibujo.slug}`,
-            encodingFormat: "image/jpeg",
-            keywords: `${dibujo.category_slug}, ${dibujo.subcategory_slug}, colorear, dibujos para colorear`,
-            interactionStatistic: [
-              {
-                "@type": "InteractionCounter",
-                interactionType: { "@type": "LikeAction" },
-                userInteractionCount: dibujo.likes || 0,
-              },
-              {
-                "@type": "InteractionCounter",
-                interactionType: { "@type": "DownloadAction" },
-                userInteractionCount: dibujo.downloads || 0,
-              },
-            ],
-            author: {
-              "@type": "Organization",
-              name: "Colorear Web",
-              url: "https://tusitio.com",
-            },
-            license: "https://creativecommons.org/licenses/by/4.0/",
-          }),
-        }}
-      />
+        <div className="max-w-2xl mx-auto space-y-8">
+          <p className="text-gray-600 text-base sm:text-xl text-center leading-relaxed px-4">
+            {dibujo.descripcion || "Descarga e imprime este dibujo para colorear totalmente gratis. Ideal para pasar una tarde creativa."}
+          </p>
 
-      <h1 className="text-4xl font-bold mb-6 text-center">{dibujo.titulo}</h1>
-
-      <div className="relative aspect-square w-full max-w-xl mx-auto">
-        <Image
-          src={imageUrl}
-          alt={dibujo.titulo}
-          fill
-          className="object-contain"
-        />
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6 border-t border-gray-100">
+            <ShareButtons titulo={dibujo.titulo} imagen={imageUrl} />
+          </div>
+        </div>
       </div>
-
-      <p className="text-gray-700 text-lg mt-4 text-center max-w-2xl mx-auto">
-        {dibujo.descripcion}
-      </p>
-
-      <ShareButtons titulo={dibujo.titulo} imagen={imageUrl} />
     </main>
   );
 }
