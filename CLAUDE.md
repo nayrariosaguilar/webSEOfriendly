@@ -4,22 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Colorear-web is a Spanish-language coloring pages website built with Next.js 16 (App Router) for the frontend and a separate Express.js backend. The site serves coloring images (dibujos para colorear) organized by categories and subcategories, with images stored in Supabase Storage.
+Colorear-web is a Spanish-language coloring pages website built with Next.js 16 (App Router). The site serves coloring images (dibujos para colorear) organized by categories, with images stored in Supabase Storage. Data is fetched directly from Supabase via REST API (no separate backend).
 
 ## Commands
 
 ### Development
 ```bash
 npm install                # Install dependencies (run first time)
-npm run dev:all            # Start both frontend + backend together
-npm run dev                # Start only frontend (localhost:3000)
-npm run dev:backend        # Start only backend (localhost:5000)
+npm run dev                # Start frontend (localhost:3000)
 ```
 
 ### Production
 ```bash
 npm run build              # Build frontend for production
-npm run start:all          # Start both servers in production mode
 ```
 
 ### Other
@@ -27,143 +24,78 @@ npm run start:all          # Start both servers in production mode
 npm run lint               # Run ESLint
 ```
 
-### Running with Nginx
-Nginx acts as a reverse proxy (access everything via port 80):
-- `/` → Next.js (port 3000)
-- `/api/*` → Express (port 5000)
-
-```bash
-# 1. Start both servers
-npm run dev:all            # Development
-npm run start:all          # Production
-
-# 2. Configure nginx (Linux/Mac)
-sudo cp nginx.conf /etc/nginx/sites-available/colorear-web
-sudo ln -s /etc/nginx/sites-available/colorear-web /etc/nginx/sites-enabled/
-sudo nginx -t && sudo nginx -s reload
-
-# 2. Configure nginx (Windows)
-copy nginx.conf C:\nginx\conf\conf.d\colorear-web.conf
-nginx -t && nginx -s reload
-
-# 3. Access at http://localhost
-```
-
 ## Architecture
-
-### Monorepo Structure
-- **Frontend**: Next.js 16 with App Router in root directory
-- **Backend**: Express.js API server in `/backend` directory (separate package.json)
-- **Shared UI**: shadcn/ui components configured via `components.json`
 
 ### Frontend Organization
 - `app/` - Next.js App Router pages with dynamic routes
-  - `[category]/` - Category pages
-  - `[category]/[subcategory]/` - Subcategory pages
-  - `[category]/[subcategory]/[slug]/` - Individual drawing pages
-- `frontend/components/` - React components
+  - `[category]/` - Category page (shows drawings in category)
+  - `[category]/[slug]/` - Individual drawing page
+  - `buscar/` - Search page
+  - `api/drawings/search/` - Search API route
+- `components/` - React components
+  - `drawings/` - Drawing card, list, share buttons
   - `ui/` - Reusable UI primitives (button, card, modal, etc.)
-  - `home/` - Homepage layout components (navbar, footer, filtersBar)
-  - `modals/` - Modal components
-  - `seo/` - SEO-related components
-- `frontend/lib/api.ts` - API client functions for backend communication
+- `lib/api.ts` - API client: types, Supabase REST fetchers, helpers
 - `lib/utils.ts` - Utility functions (cn helper for Tailwind classes)
-- `styles/globals.css` - Global styles with Tailwind CSS v4 and CSS variables
+- `styles/globals.css` - Global styles with Tailwind CSS v4
 
-### Backend Organization
-- `backend/index.js` - Express server entry point
-- `backend/src/`
-  - `routes/` - API route definitions (categories, subcategories, drawings, interactions)
-  - `controllers/` - Request handlers
-  - `services/` - Business logic and Supabase queries
-  - `config/supabaseClient.js` - Supabase client configuration
-
-### API Endpoints
-All endpoints prefixed with `/api`:
-- `/categories` - Category listing and details
-- `/categories/:slug/subcategories` - Subcategories of a category
-- `/subcategories/:slug` - Subcategory data
-- `/subcategories/:slug/drawings` - Drawings in a subcategory
-- `/drawings/:slug` - Single drawing metadata
-- `/drawings/all?sortBy=popular|downloads|recent&page=1&limit=30` - Paginated drawings
-- `/trending` - Top 20 by likes
-- `/trending/:slug/like` - Add like (POST)
-- `/trending/:slug/download` - Add download (POST)
-
-### Database Schema (Supabase)
-```sql
--- Categories
-categories (
-  id uuid primary key,
-  slug text unique not null,
-  nombre text not null,
-  descripcion text,
-  imagen text,
-  created_at timestamp
-)
-
--- Subcategories
-subcategories (
-  id uuid primary key,
-  category_id uuid references categories(id),
-  slug text unique not null,
-  nombre text not null,
-  descripcion text,
-  imagen text,
-  created_at timestamp
-)
-
--- Drawings
-drawings (
-  id uuid primary key,
-  subcategory_id uuid references subcategories(id),
-  slug text unique not null,
-  titulo text not null,
-  descripcion text,
-  imagen text not null,
-  likes integer default 0,
-  downloads integer default 0,
-  created_at timestamp
-)
-
--- Interactions (like/download tracking)
-drawing_interactions (
-  id uuid primary key,
-  drawing_id uuid references drawings(id),
-  interaction_type text not null,  -- 'like' | 'download'
-  ip_hash text not null,
-  created_at timestamp
-)
-```
-
-### Example Data
-```sql
--- Insert categories
-INSERT INTO categories (slug, nombre, descripcion, imagen) VALUES
-  ('navidad', 'Navidad', 'Dibujos navideños para colorear', 'category/bebebox.jpg'),
-  ('animales', 'Animales', 'Animales tiernos para colorear', 'category/cat.jpg'),
-  ('gabbyDollhouse', 'cartoon', 'Gabby Casa de muñecos', 'category/gabby.jpg');
-
--- Insert subcategories (use category_id from above)
-INSERT INTO subcategories (category_id, slug, nombre, descripcion, imagen) VALUES
-  ('1a7cd1d9-3237-471d-bdda-9b652332b3b3', 'arbol-navidad', 'Árbol de Navidad', 'Árboles de navidad para colorear', 'subcategory/bebebox.jpg'),
-  ('1a7cd1d9-3237-471d-bdda-9b652332b3b3', 'santa-claus', 'Santa Claus', 'Dibujos de Santa Claus para niños', 'subcategory/cat.jpg');
-```
+### URL Structure
+- `/` - Homepage (paginated drawings, sorted by popular/downloads/recent)
+- `/[category]` - Drawings in a category
+- `/[category]/[slug]` - Individual drawing detail page
+- `/buscar?q=...` - Search results
 
 ### Data Flow
-1. Next.js pages fetch data via `frontend/lib/api.ts`
-2. API client calls Express backend at `localhost:5000/api`
-3. Backend services query Supabase database
-4. Images served from Supabase Storage bucket `drawings` (`dpvulchbiygiidolzrjl.supabase.co/storage/v1/object/public/drawings/`)
+1. Next.js Server Components call functions from `lib/api.ts`
+2. `lib/api.ts` fetches Supabase REST API directly with Next.js cache (1h revalidation)
+3. Images resolved from `drawing_assets` table, served via Supabase Storage bucket `drawings`
+4. Metrics (views/downloads) aggregated from `drawing_metrics_summary` view
+
+### Database Schema (Supabase)
+
+Key tables (new structure):
+
+```sql
+-- Categories (slug, name, description, is_active)
+categories (id uuid PK, slug text UNIQUE, name text, description text, is_active boolean)
+
+-- Drawings (linked to category, NOT subcategories)
+drawings (id uuid PK, slug text UNIQUE, title text, description text,
+          category_id uuid FK→categories, age_level enum, status enum,
+          seo_title text, seo_description text, og_title text, og_description text,
+          published_at timestamptz, created_at timestamptz)
+
+-- Drawing assets (images in storage)
+drawing_assets (id uuid PK, drawing_id uuid FK→drawings, kind enum, path text, ...)
+-- kind: 'original_png' | 'thumbnail' | 'print_png' | 'pdf_a4' | 'pdf_letter' | 'pin_image'
+
+-- Tags (N:N with drawings)
+tags (id uuid PK, slug text UNIQUE, name text)
+drawing_tags (drawing_id uuid, tag_id uuid, PK(drawing_id, tag_id))
+
+-- Metrics
+drawing_daily_metrics (drawing_id uuid, day date, views int, downloads int)
+drawing_metrics_summary (VIEW: drawing_id, total_views, total_downloads)
+
+-- Other: trends, pipeline_runs, pipeline_jobs, pinterest_boards,
+--        pin_publications, drawing_moderation, drawing_events,
+--        user_favorites, audit_log, profiles
+```
+
+### API Functions (lib/api.ts)
+- `getDrawing(slug)` - Single drawing with assets, category, metrics
+- `getCategories()` - Active categories
+- `getDrawingsByCategory(categorySlug)` - Published drawings in a category
+- `getDrawingsPaginated(sortBy, page, limit)` - Paginated with metrics sorting
+- `getAllDrawings()` - For sitemap generation
+- `getPublicUrl(path)` - Resolve storage path to public URL
 
 ### Path Aliases
 - `@/*` maps to project root (configured in tsconfig.json)
-- shadcn aliases: `@/components`, `@/lib/utils`, `@/components/ui`
 
 ## Tech Stack
 - Next.js 16, React 19, TypeScript
 - Tailwind CSS v4 with tw-animate-css
 - shadcn/ui (new-york style, lucide icons)
-- Express.js 5 with ES modules
-- Supabase (database + storage)
-- next-seo for SEO optimization
+- Supabase (database + storage + RLS)
+- @supabase/ssr + @supabase/supabase-js

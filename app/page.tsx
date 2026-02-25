@@ -31,7 +31,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           Dibujos para <span className="text-blue-600 italic">Colorear</span> <br className="hidden sm:block" /> Gratis
         </h1>
         <p className="text-gray-500 text-base sm:text-xl max-w-2xl mx-auto px-4">
-          Descubre nuestra colección exclusiva de line art generada por IA. 
+          Descubre nuestra colección exclusiva de line art generada por IA.
           Perfectos para imprimir y colorear en casa con los más pequeños.
         </p>
       </header>
@@ -44,7 +44,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             href={`/${cat.slug}`}
             className="whitespace-nowrap px-6 py-2 bg-white border border-gray-100 rounded-full shadow-sm hover:shadow-md hover:border-blue-200 transition-all text-sm font-bold text-gray-700"
           >
-            {cat.nombre}
+            {cat.name}
           </a>
         ))}
       </div>
@@ -68,8 +68,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               key={i}
               href={`/?page=${i + 1}&filter=${filter}`}
               className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all ${
-                pagination.page === i + 1 
-                ? 'bg-blue-600 text-white' 
+                pagination.page === i + 1
+                ? 'bg-blue-600 text-white'
                 : 'bg-white border text-gray-400 hover:border-blue-400'
               }`}
             >
