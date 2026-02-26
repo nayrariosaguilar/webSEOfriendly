@@ -1,7 +1,7 @@
 'use client';
 
-import { Share2, Facebook, Twitter, Link as LinkIcon, Pin } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { Share2, Facebook, Link as LinkIcon, Pin } from 'lucide-react';
 
 interface ShareButtonsProps {
   titulo: string;
@@ -9,7 +9,11 @@ interface ShareButtonsProps {
 }
 
 export function ShareButtons({ titulo, imagen }: ShareButtonsProps) {
-  const url = typeof window !== 'undefined' ? window.location.href : '';
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    setUrl(window.location.href);
+  }, []);
   
   const shareLinks = [
     {

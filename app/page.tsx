@@ -26,16 +26,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <main className="container mx-auto px-4 py-6 sm:py-12">
-      <header className="mb-8 sm:mb-16 text-center">
-        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 mb-4 tracking-tight leading-tight">
-          Dibujos para <span className="text-blue-600 italic">Colorear</span> <br className="hidden sm:block" /> Gratis
-        </h1>
-        <p className="text-gray-500 text-base sm:text-xl max-w-2xl mx-auto px-4">
-          Descubre nuestra colección exclusiva de line art generada por IA.
-          Perfectos para imprimir y colorear en casa con los más pequeños.
-        </p>
-      </header>
-
       {/* Categorías Rápidas - Ahora con Scroll Horizontal en móvil */}
       <div className="flex overflow-x-auto sm:flex-wrap sm:justify-center gap-3 mb-10 pb-4 sm:pb-0 scrollbar-hide">
         {categories.map((cat) => (
